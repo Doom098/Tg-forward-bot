@@ -18,27 +18,25 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # === CONFIGURATION ===
-# Load configuration from Replit Secrets (Environment Variables).
+# Load configuration from Environment Variables.
 # This is more secure than hardcoding them in the script.
-# It's also good practice to get the chat IDs from secrets.
 try:
     TOKEN = os.environ['TOKEN']
     # Ensure the chat IDs are integers, as the API expects them to be.
     SOURCE_CHAT_ID = int(os.environ['GROUP_A_ID'])
     DESTINATION_CHAT_ID = int(os.environ['GROUP_B_ID'])
 except (KeyError, ValueError) as e:
-    logger.critical(f"CRITICAL ERROR: Missing or invalid environment variable: {e}. Please check your Replit Secrets.")
+    logger.critical(f"CRITICAL ERROR: Missing or invalid environment variable: {e}. Please check your hosting environment variables.")
     # Exit if the configuration is missing, as the bot cannot run.
     exit()
 
-# === KEEP-ALIVE SERVER (FOR REPLIT DEPLOYMENT) ===
-# This Flask server is what Replit's Deployment feature will hook into.
-# When deployed, Replit will continuously ping this server to keep it alive.
+# === KEEP-ALIVE SERVER (FOR RENDER DEPLOYMENT) ===
+# This Flask server is what Render's health check will ping to keep the service alive.
 server = Flask('')
 
 @server.route('/')
 def home():
-    # This page confirms to you and the Replit service that the bot is running.
+    # This page confirms to you and the Render service that the bot is running.
     return "Telegram Forwarder Bot is alive and running!"
 
 def run_flask_server():
@@ -86,7 +84,8 @@ if __name__ == '__main__':
     run_flask_server()
 
     # 2. Create the bot application instance.
-    application = Application.builder().token(TOKEN).build()
+    # We explicitly disable the job_queue as it's not needed and can cause issues.
+    application = Application.builder().token(TOKEN).job_queue(None).build()
 
     # 3. Add the handler for forwarding messages.
     # We use filters.ALL to catch any type of message, but we explicitly
