@@ -5,7 +5,8 @@ import asyncio
 from threading import Thread
 from flask import Flask
 from telegram import Update
-from telegram.ext import Application, MessageHandler, filters, ContextTypes
+# CommandHandler is now imported to handle the /ping command
+from telegram.ext import Application, MessageHandler, CommandHandler, filters, ContextTypes
 
 # === LOGGING SETUP ===
 # A good logging setup is crucial for debugging a bot that runs 24/7.
@@ -49,6 +50,15 @@ def run_flask_server():
     logger.info("Flask keep-alive server started in a background thread.")
 
 # === TELEGRAM BOT LOGIC ===
+
+# NEW: Handler for the /ping command
+async def ping_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Sends a message back to the user when the command /ping is issued."""
+    # This is a simple way to check if the bot is responsive.
+    await update.message.reply_text("Pong! I am alive and running.")
+    logger.info(f"Responded to /ping command from user {update.effective_user.id}")
+
+
 async def forward_message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
     Handles incoming messages, filters for the source chat,
@@ -87,9 +97,11 @@ if __name__ == '__main__':
     # We explicitly disable the job_queue as it's not needed and can cause issues.
     application = Application.builder().token(TOKEN).job_queue(None).build()
 
-    # 3. Add the handler for forwarding messages.
-    # We use filters.ALL to catch any type of message, but we explicitly
-    # exclude commands so the bot doesn't forward its own commands.
+    # 3. Add the handlers.
+    # NEW: Add the handler for the /ping command.
+    application.add_handler(CommandHandler("ping", ping_command))
+    
+    # Add the handler for forwarding all other messages.
     application.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, forward_message_handler))
 
     # 4. Start the bot.
